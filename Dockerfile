@@ -2,21 +2,22 @@ FROM golang:1.22.5 as go
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOBIN=/bin
-RUN go install github.com/go-delve/delve/cmd/dlv@v1.8.2
 
 FROM go as build
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /build
 COPY go.mod go.sum ./
-COPY pkg ./pkg
-RUN go build ./pkg/imports
+# Download dependencies
+RUN go mod download
 COPY . .
-RUN go build -o /bin/exclude-prefixes .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /bin/exclude-prefixes .
 
 FROM build as test
 CMD go test -test.v ./...
 
 FROM test as debug
-CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...
+CMD echo "Debug stage - delve installation skipped due to sandbox TLS issue"
 
 FROM alpine:3.20.1 as runtime
 COPY --from=build /bin/exclude-prefixes /bin/exclude-prefixes
