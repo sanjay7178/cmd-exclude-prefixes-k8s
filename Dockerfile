@@ -19,6 +19,7 @@ CMD go test -test.v ./...
 FROM test AS debug
 CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...
 
-FROM alpine:3.20.1 AS runtime
+FROM gcr.io/distroless/static-debian12:nonroot as runtime
 COPY --from=build /bin/exclude-prefixes /bin/exclude-prefixes
+USER 65532:65532
 ENTRYPOINT ["/bin/exclude-prefixes"]
